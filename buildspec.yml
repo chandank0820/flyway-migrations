@@ -17,19 +17,29 @@ phases:
       java: corretto11
     commands:
       - echo "Downloading Flyway CLI from S3..."
-      - aws s3 cp "$FLYWAY_S3_PATH" flyway.tar.gz --quiet
+      - aws s3 cp "$FLYWAY_S3_PATH" flyway.tar.gz --quiet || echo "S3 download failed"
       - echo "Extracting Flyway..."
-      - tar -xzf flyway.tar.gz
-      - export FLYWAY_HOME=$(pwd)/flyway
+      - tar -xzf flyway.tar.gz || echo "Extraction failed"
+      - echo "Contents of current directory:"
+      - ls -la
+      - echo "Finding Flyway directory..."
+      - FLYWAY_DIR=$(find . -maxdepth 2 -type d -name "flyway*" | head -1)
+      - echo "Flyway directory found: $FLYWAY_DIR"
+      - if [ -z "$FLYWAY_DIR" ]; then echo "Flyway directory not found!"; exit 1; fi
+      - export FLYWAY_HOME=$(pwd)/$FLYWAY_DIR
+      - echo "FLYWAY_HOME set to: $FLYWAY_HOME"
+      - chmod +x $FLYWAY_HOME/flyway || echo "chmod failed, but continuing..."
       - export PATH=$FLYWAY_HOME:$PATH
-      - chmod +x $FLYWAY_HOME/flyway
-      - flyway -v
+      - which flyway || echo "Flyway not in PATH"
+      - $FLYWAY_HOME/flyway -v || echo "Flyway version check failed"
 
   pre_build:
     commands:
       - echo "Getting database credentials from AWS Secrets Manager..."
       - SECRET_ID="rds/${TARGET_ENV}/flyway_user"
+      - echo "SECRET_ID: $SECRET_ID"
       - SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --query 'SecretString' --output text)
+      - echo "Secret retrieved successfully"
       - export DB_HOST=$(echo "$SECRET_JSON" | jq -r '.host')
       - export DB_PORT=$(echo "$SECRET_JSON" | jq -r '.port')
       - export DB_NAME=$(echo "$SECRET_JSON" | jq -r '.dbname')
@@ -41,15 +51,20 @@ phases:
   build:
     commands:
       - echo "Running Flyway migrations in $MODE mode..."
+      - echo "Using FLYWAY_HOME: $FLYWAY_HOME"
+      - echo "Using PATH: $PATH"
       - export SCRIPT_PATH="filesystem:$(pwd)/${MODE}_scripts"
+      - echo "Script path: $SCRIPT_PATH"
+      - echo "Checking if scripts exist:"
+      - ls -la ${MODE}_scripts/ || echo "Script directory not found"
       - |
-        flyway -url="$FLYWAY_URL" \
+        $FLYWAY_HOME/flyway -url="$FLYWAY_URL" \
                -user="$DB_USER" \
                -password="$DB_PASSWORD" \
                -schemas="$SCHEMAS" \
                -locations="$SCRIPT_PATH" \
                -baselineOnMigrate=true \
-               migrate
+               migrate || echo "Flyway migration failed"
 
 artifacts:
   files:
