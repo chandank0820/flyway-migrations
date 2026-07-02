@@ -3,8 +3,8 @@ version: 0.2
 env:
   variables:
     SCHEMAS: public
-    TARGET_ENV: "flyway-db"  
-    MODE: "release"     
+    TARGET_ENV: "flyway-db"
+    MODE: "release"
 
 phases:
   install:
@@ -15,16 +15,11 @@ phases:
       - wget -q -O flyway.tar.gz https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/11.8.2/flyway-commandline-11.8.2-linux-x64.tar.gz
       - echo "Extracting Flyway..."
       - tar -xzf flyway.tar.gz
-      - echo "List of extracted files:"
-      - ls -la
       - echo "Moving Flyway to /flyway directory..."
       - mkdir -p flyway
       - mv flyway-11.8.2/* flyway/ 2>/dev/null || mv flyway-*/* flyway/ 2>/dev/null || echo "Moving files..."
       - export FLYWAY_HOME=$(pwd)/flyway
       - echo "FLYWAY_HOME is: $FLYWAY_HOME"
-      - echo "Contents of flyway directory:"
-      - ls -la $FLYWAY_HOME/
-      - echo "Setting permissions..."
       - chmod +x $FLYWAY_HOME/flyway
       - export PATH=$FLYWAY_HOME:$PATH
       - echo "Testing Flyway version..."
@@ -34,9 +29,7 @@ phases:
     commands:
       - echo "Getting database credentials from AWS Secrets Manager..."
       - SECRET_ID="rds/${TARGET_ENV}/flyway_user"
-      - echo "Secret ID: $SECRET_ID"
       - SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --query 'SecretString' --output text)
-      - echo "Secret retrieved successfully"
       - export DB_HOST=$(echo "$SECRET_JSON" | jq -r '.host')
       - export DB_PORT=$(echo "$SECRET_JSON" | jq -r '.port')
       - export DB_NAME=$(echo "$SECRET_JSON" | jq -r '.dbname')
@@ -47,24 +40,10 @@ phases:
 
   build:
     commands:
-      - echo "Running Flyway migrations..."
-      - echo "Mode: $MODE"
-      - echo "Current directory:"
-      - pwd
-      - echo "Scripts directory:"
-      - ls -la ${MODE}_scripts/ || echo "Script directory not found"
+      - echo "Running Flyway migrations in $MODE mode..."
       - export SCRIPT_PATH="filesystem:$(pwd)/${MODE}_scripts"
       - echo "Script path: $SCRIPT_PATH"
-      - |
-        $FLYWAY_HOME/flyway \
-          -url="$FLYWAY_URL" \
-          -user="$DB_USER" \
-          -password="$DB_PASSWORD" \
-          -schemas="$SCHEMAS" \
-          -locations="$SCRIPT_PATH" \
-          -baselineOnMigrate=true \
-          migrate
-      - echo "Migration completed!"
+      - $FLYWAY_HOME/flyway -url="$FLYWAY_URL" -user="$DB_USER" -password="$DB_PASSWORD" -schemas="$SCHEMAS" -locations="$SCRIPT_PATH" -baselineOnMigrate=true migrate
 
 artifacts:
   files:
