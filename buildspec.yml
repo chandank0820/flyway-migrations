@@ -21,7 +21,15 @@ phases:
       - export FLYWAY_URL="jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}"
   build:
     commands:
-      - flyway -url="$FLYWAY_URL" -user="$DB_USER" -password="$DB_PASSWORD" -locations="filesystem:$(pwd)/${MODE}_scripts" -baselineOnMigrate=true migrate
+      - |
+        if [ "$MODE" = "release" ]; then
+          SCRIPT_PATH="filesystem:$(pwd)/release_scripts"
+        elif [ "$MODE" = "rollback" ]; then
+          SCRIPT_PATH="filesystem:$(pwd)/rollback_scripts"
+        else
+          SCRIPT_PATH="filesystem:$(pwd)/release_scripts"
+        fi
+      - flyway -url="$FLYWAY_URL" -user="$DB_USER" -password="$DB_PASSWORD" -locations="$SCRIPT_PATH" -baselineOnMigrate=true migrate
 artifacts:
   files:
     - '**/*'
