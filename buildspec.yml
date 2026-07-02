@@ -1,0 +1,56 @@
+version: 0.2
+
+env:
+  variables:
+    FLYWAY_VERSION: "11.8.2"
+    REGION: us-east-2
+    SCHEMAS: public
+    TARGET_ENV: "dev"  
+    MODE: "release"     
+    FLYWAY_S3_PATH: "s3://flyway-cli-bucket-chandan/flyway-image/FlywayDesktopLinuxX64.tar.gz"
+  exported-variables:
+    - FLYWAY_URL
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto11
+    commands:
+      - echo "Downloading Flyway CLI from S3..."
+      - aws s3 cp "$FLYWAY_S3_PATH" flyway.tar.gz --quiet
+      - echo "Extracting Flyway..."
+      - tar -xzf flyway.tar.gz
+      - export FLYWAY_HOME=$(pwd)/flyway
+      - export PATH=$FLYWAY_HOME:$PATH
+      - chmod +x $FLYWAY_HOME/flyway
+      - flyway -v
+
+  pre_build:
+    commands:
+      - echo "Getting database credentials from AWS Secrets Manager..."
+      - SECRET_ID="rds/${TARGET_ENV}/flyway_user"
+      - SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --query 'SecretString' --output text)
+      - export DB_HOST=$(echo "$SECRET_JSON" | jq -r '.host')
+      - export DB_PORT=$(echo "$SECRET_JSON" | jq -r '.port')
+      - export DB_NAME=$(echo "$SECRET_JSON" | jq -r '.dbname')
+      - export DB_USER=$(echo "$SECRET_JSON" | jq -r '.username')
+      - export DB_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.password')
+      - export FLYWAY_URL="jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}"
+      - echo "Database connection prepared."
+
+  build:
+    commands:
+      - echo "Running Flyway migrations in $MODE mode..."
+      - export SCRIPT_PATH="filesystem:$(pwd)/${MODE}_scripts"
+      - |
+        flyway -url="$FLYWAY_URL" \
+               -user="$DB_USER" \
+               -password="$DB_PASSWORD" \
+               -schemas="$SCHEMAS" \
+               -locations="$SCRIPT_PATH" \
+               -baselineOnMigrate=true \
+               migrate
+
+artifacts:
+  files:
+    - '**/*'
