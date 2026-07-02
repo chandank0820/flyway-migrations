@@ -11,7 +11,7 @@ phases:
       - flyway -v
   pre_build:
     commands:
-      - SECRET_ID="rds/${TARGET_ENV}/flyway_user"
+      - SECRET_ID="rds/dev/flyway_user"
       - SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --query 'SecretString' --output text)
       - export DB_HOST=$(echo "$SECRET_JSON" | jq -r '.host')
       - export DB_PORT=$(echo "$SECRET_JSON" | jq -r '.port')
