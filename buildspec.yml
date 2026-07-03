@@ -4,26 +4,26 @@ phases:
     runtime-versions:
       java: corretto11
     commands:
-      - wget -O flyway.tar.gz https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/11.8.2/flyway-commandline-11.8.2-linux-x64.tar.gz
-      - tar -xzf flyway.tar.gz
-      - chmod +x flyway-11.8.2/flyway
-      - export PATH=$PATH:$(pwd)/flyway-11.8.2
-      - flyway -v
+    - wget -O flyway.tar.gz https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/11.8.2/flyway-commandline-11.8.2-linux-x64.tar.gz
+    - tar -xzf flyway.tar.gz
+    - chmod +x flyway-11.8.2/flyway
+    - export PATH=$PATH:$(pwd)/flyway-11.8.2
+    - flyway -v
   pre_build:
     commands:
-      - SECRET_ID="rds/dev/flyway_user"
-      - SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --query 'SecretString' --output text)
-      - export DB_HOST=$(echo "$SECRET_JSON" | jq -r '.host')
-      - export DB_PORT=$(echo "$SECRET_JSON" | jq -r '.port')
-      - export DB_NAME=$(echo "$SECRET_JSON" | jq -r '.dbname')
-      - export DB_USER=$(echo "$SECRET_JSON" | jq -r '.username')
-      - export DB_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.password')
-      - export FLYWAY_URL="jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}"
+    - SECRET_ID="rds/dev/flyway_user"
+    - SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --query 'SecretString' --output text)
+    - export DB_HOST=$(echo "$SECRET_JSON" | jq -r '.host')
+    - export DB_PORT=$(echo "$SECRET_JSON" | jq -r '.port')
+    - export DB_NAME=$(echo "$SECRET_JSON" | jq -r '.dbname')
+    - export DB_USER=$(echo "$SECRET_JSON" | jq -r '.username')
+    - export DB_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.password')
+    - export FLYWAY_URL="jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}"
   build:
     commands:
-      - SCRIPT_PATH="filesystem:$(pwd)/release_scripts/postgres"
-      - echo "Using scripts from: $SCRIPT_PATH"
-      - flyway -url="$FLYWAY_URL" -user="$DB_USER" -password="$DB_PASSWORD" -locations="$SCRIPT_PATH" -baselineOnMigrate=true migrate
+    - SCRIPT_PATH="filesystem:$(pwd)/release_scripts/postgres"
+    - echo "Using scripts from: $SCRIPT_PATH"
+    - flyway -url="$FLYWAY_URL" -user="$DB_USER" -password="$DB_PASSWORD" -locations="$SCRIPT_PATH" -baselineOnMigrate=true migrate
 artifacts:
   files:
-    - '**/*'
+  - '**/*'
