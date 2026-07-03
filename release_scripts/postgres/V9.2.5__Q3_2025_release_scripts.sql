@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS database_folder_test (
-    id SERIAL PRIMARY KEY,
+    id PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     full_name VARCHAR(100),
