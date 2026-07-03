@@ -19,16 +19,18 @@ phases:
       - export DB_USER=$(echo "$SECRET_JSON" | jq -r '.username')
       - export DB_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.password')
       - export FLYWAY_URL="jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}"
+      - export TARGET_DB="postgres"
   build:
     commands:
       - |
         if [ "$MODE" = "release" ]; then
-          SCRIPT_PATH="filesystem:$(pwd)/release_scripts"
+          SCRIPT_PATH="filesystem:$(pwd)/release_scripts/${TARGET_DB}"
         elif [ "$MODE" = "rollback" ]; then
-          SCRIPT_PATH="filesystem:$(pwd)/rollback_scripts"
+          SCRIPT_PATH="filesystem:$(pwd)/rollback_scripts/${TARGET_DB}"
         else
-          SCRIPT_PATH="filesystem:$(pwd)/release_scripts"
+          SCRIPT_PATH="filesystem:$(pwd)/release_scripts/${TARGET_DB}"
         fi
+      - echo "Using scripts from: $SCRIPT_PATH"
       - flyway -url="$FLYWAY_URL" -user="$DB_USER" -password="$DB_PASSWORD" -locations="$SCRIPT_PATH" -baselineOnMigrate=true migrate
 artifacts:
   files:
