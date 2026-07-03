@@ -22,7 +22,6 @@ phases:
   build:
     commands:
     - SCRIPT_PATH="filesystem:$(pwd)/release_scripts/postgres"
-    - echo "Using scripts from: $SCRIPT_PATH"
     - flyway -url="$FLYWAY_URL" -user="$DB_USER" -password="$DB_PASSWORD" -locations="$SCRIPT_PATH" -baselineOnMigrate=true migrate
 artifacts:
   files:
