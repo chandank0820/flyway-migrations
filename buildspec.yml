@@ -19,9 +19,13 @@ phases:
     - export DB_USER=$(echo "$SECRET_JSON" | jq -r '.username')
     - export DB_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.password')
     - export FLYWAY_URL="jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}"
+    # Set database folder from pipeline variable or default to 'postgres'
+    - export DB_FOLDER="${DATABASE_FOLDER:-postgres}"
+    - echo "Using database folder: ${DB_FOLDER}"
   build:
     commands:
-    - SCRIPT_PATH="filesystem:$(pwd)/release_scripts/postgres"
+    - SCRIPT_PATH="filesystem:$(pwd)/release_scripts/${DB_FOLDER}"
+    - echo "Script path: ${SCRIPT_PATH}"
     - flyway -url="$FLYWAY_URL" -user="$DB_USER" -password="$DB_PASSWORD" -locations="$SCRIPT_PATH" -baselineOnMigrate=true migrate
 artifacts:
   files:
