@@ -1,4 +1,4 @@
 CREATE TABLE something (
-    id INTEGER PRIMARY KEY,
-    name VARCHAR(50)
-);
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(50)
+ );
