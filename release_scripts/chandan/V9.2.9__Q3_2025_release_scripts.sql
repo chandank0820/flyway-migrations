@@ -1,0 +1,4 @@
+CREATE TABLE asha (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(50)
+);
